@@ -330,7 +330,7 @@ class Api():
                     job_status = api_call['status']
                     break
                 elif job_status == "CANCELED":
-                    self.log('Job Cancelled\n')
+                    self.log('Job Canceled\n')
                     job_status = api_call['status']
                     break
                 elif job_status in in_progress_status:

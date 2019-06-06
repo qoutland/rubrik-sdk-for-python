@@ -38,13 +38,6 @@ from .cloud import Cloud
 from .exceptions import InvalidParameterException, RubrikException, APICallException, InvalidTypeException
 
 
-_CLUSTER = Cluster
-_DATA_MANAGEMENT = Data_Management
-_PHYSICAL = Physical
-_API = Api
-_CLOUD = Cloud
-
-
 class Connect(Cluster, Data_Management, Physical, Cloud):
     """This class acts as the base class for the Rubrik SDK and serves as the main interaction point
     for its end users. It also contains various helper functions used throughout the SDK.
@@ -185,7 +178,6 @@ class Connect(Cluster, Data_Management, Physical, Cloud):
         """
 
         if self.api_token is None:
-            self.log("Creating the authorization header using the provided username and password.")
 
             credentials = '{}:{}'.format(self.username, self.password)
 
@@ -203,7 +195,6 @@ class Connect(Cluster, Data_Management, Physical, Cloud):
 
         else:
 
-            self.log("Creating the authorization header using the provided API Token.")
             authorization_header = {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
@@ -256,7 +247,7 @@ class Connect(Cluster, Data_Management, Physical, Cloud):
                     "Error: The API Endpoint should not end with '/' unless proceeded by '='. (ex. /cluster/me or /fileset/snapshot/<id>/browse?path=/)")
 
 
-class Bootstrap(_API):
+class Bootstrap(Api):
     """This class contains all functions related to the Bootstrapping of a Rubrik Cluster.
 
     Arguments:

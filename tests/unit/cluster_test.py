@@ -480,10 +480,57 @@ def test_configure_timezone(rubrik, mocker):
     assert rubrik.configure_timezone("America/Chicago") == mock_patch_v1_cluster_me()
 
 
-def test_configure_ntp_invalid_type(rubrik):
+def test_configure_ntp_invalid_ntp_server_type(rubrik):
 
-    with pytest.raises(InvalidTypeException):
+    with pytest.raises(InvalidTypeException) as error:
         rubrik.configure_ntp("not_a_list")
+
+    error_message = error.value.args[0]
+
+    assert error_message == "The 'ntp_server' argument must be a list object."
+
+
+def test_configure_ntp_idempotence(rubrik, mocker):
+
+    def mock_get_internal_id_ntp_server():
+        return {
+            "hasMore": False,
+            "data": [
+                "172.21.10.11",
+                "172.21.10.12"
+            ],
+            "total": 2
+        }
+
+    mock_get = mocker.patch('rubrik_cdm.Connect.get', autospec=True, spec_set=True)
+    mock_get.return_value = mock_get_internal_id_ntp_server()
+
+    assert rubrik.configure_ntp(["172.21.10.11", "172.21.10.12"]) == \
+        "No change required. The NTP server(s) ['172.21.10.11', '172.21.10.12'] has already been added to the Rubrik cluster."
+
+
+def test_configure_ntp(rubrik, mocker):
+
+    def mock_get_internal_id_ntp_server():
+        return {
+            "hasMore": False,
+            "data": [
+                "172.21.10.11",
+                "172.21.10.13"
+            ],
+            "total": 2
+        }
+
+    def mock_post_internal_cluster_id_ntp_server():
+        return {'status_code': '204'}
+
+    mock_get = mocker.patch('rubrik_cdm.Connect.get', autospec=True, spec_set=True)
+    mock_get.return_value = mock_get_internal_id_ntp_server()
+
+    mock_post = mocker.patch('rubrik_cdm.Connect.post', autospec=True, spec_set=True)
+    mock_post.return_value = mock_post_internal_cluster_id_ntp_server()
+
+    assert rubrik.configure_ntp(["172.21.10.11", "172.21.10.12"]) == mock_post_internal_cluster_id_ntp_server()
 
 
 def test_configure_syslog_invalid_protocol(rubrik):
@@ -1126,3 +1173,147 @@ def test_read_only_authorization(rubrik, mocker):
     mock_post.return_value = mock_post_internal_authorization_role_read_only_admin()
 
     assert rubrik.read_only_authorization("username") == mock_post_internal_authorization_role_read_only_admin()
+
+
+def test_cluster_node_id(rubrik, mocker):
+
+    def mock_get_internal_node():
+        return {
+            "hasMore": True,
+            "data": [
+                {
+                    "id": "node01_id",
+                    "brikId": "string",
+                    "status": "string",
+                    "ipAddress": "string",
+                    "supportTunnel": {
+                        "isTunnelEnabled": True,
+                        "port": 0,
+                        "enabledTime": "2019-06-06T20:02:28.472Z",
+                        "lastActivityTime": "2019-06-06T20:02:28.472Z",
+                        "inactivityTimeoutInSeconds": 0
+                    }
+                },
+                {
+                    "id": "node02_id",
+                    "brikId": "string",
+                    "status": "string",
+                    "ipAddress": "string",
+                    "supportTunnel": {
+                        "isTunnelEnabled": True,
+                        "port": 0,
+                        "enabledTime": "2019-06-06T20:02:28.472Z",
+                        "lastActivityTime": "2019-06-06T20:02:28.472Z",
+                        "inactivityTimeoutInSeconds": 0
+                    }
+                }
+            ],
+            "total": 2
+        }
+
+    mock_get = mocker.patch('rubrik_cdm.Connect.get', autospec=True, spec_set=True)
+    mock_get.return_value = mock_get_internal_node()
+
+    assert rubrik.cluster_node_id() == ["node01_id", "node02_id"]
+
+
+def test_cluster_support_tunnel_invalid_enabled(rubrik):
+
+    with pytest.raises(InvalidTypeException) as error:
+        rubrik.cluster_support_tunnel("not_a_valid_enabled")
+
+    error_message = error.value.args[0]
+
+    assert error_message == "The enabled parameter must be True or False."
+
+
+def test_cluster_support_tunnel_enabled_true_idempotence(rubrik, mocker):
+
+    def mock_get_internal_node_id_support_tunnel():
+        return {
+            "isTunnelEnabled": True,
+            "port": 0,
+            "enabledTime": "2019-06-06T20:02:28.497Z",
+            "lastActivityTime": "2019-06-06T20:02:28.497Z",
+            "inactivityTimeoutInSeconds": 0
+        }
+
+    mock_get = mocker.patch('rubrik_cdm.Connect.get', autospec=True, spec_set=True)
+    mock_get.return_value = mock_get_internal_node_id_support_tunnel()
+
+    assert rubrik.cluster_support_tunnel(True) == "No change required. Support Tunnel is already enabled."
+
+
+def test_cluster_support_tunnel_enabled_true(rubrik, mocker):
+
+    def mock_get_internal_node_id_support_tunnel():
+        return {
+            "isTunnelEnabled": False,
+            "port": 0,
+            "enabledTime": "2019-06-06T20:02:28.497Z",
+            "lastActivityTime": "2019-06-06T20:02:28.497Z",
+            "inactivityTimeoutInSeconds": 0
+        }
+
+    def mock_patch_internal_node_id_support_tunnel():
+        return {
+            "isTunnelEnabled": True,
+            "port": 0,
+            "enabledTime": "2019-06-06T20:02:28.502Z",
+            "lastActivityTime": "2019-06-06T20:02:28.502Z",
+            "inactivityTimeoutInSeconds": 0
+        }
+
+    mock_get = mocker.patch('rubrik_cdm.Connect.get', autospec=True, spec_set=True)
+    mock_get.return_value = mock_get_internal_node_id_support_tunnel()
+
+    mock_patch = mocker.patch('rubrik_cdm.Connect.patch', autospec=True, spec_set=True)
+    mock_patch.return_value = mock_patch_internal_node_id_support_tunnel()
+
+    assert rubrik.cluster_support_tunnel(True) == mock_patch_internal_node_id_support_tunnel()
+
+
+def test_cluster_support_tunnel_enabled_false_idempotence(rubrik, mocker):
+
+    def mock_get_internal_node_id_support_tunnel():
+        return {
+            "isTunnelEnabled": False,
+            "port": 0,
+            "enabledTime": "2019-06-06T20:02:28.497Z",
+            "lastActivityTime": "2019-06-06T20:02:28.497Z",
+            "inactivityTimeoutInSeconds": 0
+        }
+
+    mock_get = mocker.patch('rubrik_cdm.Connect.get', autospec=True, spec_set=True)
+    mock_get.return_value = mock_get_internal_node_id_support_tunnel()
+
+    assert rubrik.cluster_support_tunnel(False) == "No change required. Support Tunnel is already disabled."
+
+
+def test_cluster_support_tunnel_enabled_false(rubrik, mocker):
+
+    def mock_get_internal_node_id_support_tunnel():
+        return {
+            "isTunnelEnabled": True,
+            "port": 0,
+            "enabledTime": "2019-06-06T20:02:28.497Z",
+            "lastActivityTime": "2019-06-06T20:02:28.497Z",
+            "inactivityTimeoutInSeconds": 0
+        }
+
+    def mock_patch_internal_node_id_support_tunnel():
+        return {
+            "isTunnelEnabled": False,
+            "port": 0,
+            "enabledTime": "2019-06-06T20:02:28.502Z",
+            "lastActivityTime": "2019-06-06T20:02:28.502Z",
+            "inactivityTimeoutInSeconds": 0
+        }
+
+    mock_get = mocker.patch('rubrik_cdm.Connect.get', autospec=True, spec_set=True)
+    mock_get.return_value = mock_get_internal_node_id_support_tunnel()
+
+    mock_patch = mocker.patch('rubrik_cdm.Connect.patch', autospec=True, spec_set=True)
+    mock_patch.return_value = mock_patch_internal_node_id_support_tunnel()
+
+    assert rubrik.cluster_support_tunnel(False) == mock_patch_internal_node_id_support_tunnel()

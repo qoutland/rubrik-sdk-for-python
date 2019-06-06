@@ -634,13 +634,12 @@ class Cluster(Api):
             enabled (bool) -- The flag that enables or disables the support tunnel. (default: {True})
             timeout {int} -- The number of seconds to wait to establish a connection the Rubrik cluster before returning a timeout error. (default: {15})
 
-
         Returns:
             dict -- The full API response from `POST /internal/node/me/support_tunnel`.
         """
 
         if not isinstance(enabled, bool):
-            raise InvalidParameterException("The enabled parameter must be True or False.")
+            raise InvalidTypeException("The enabled parameter must be True or False.")
 
         self.log("cluster_support_tunnel - Determining status of Cluster Support Tunnel.")
         check_tunnel = self.get('internal', '/node/me/support_tunnel', timeout)
@@ -662,13 +661,10 @@ class Cluster(Api):
         elif enabled is False:
 
             if check_tunnel['isTunnelEnabled'] is False:
-
                 return ("No change required. Support Tunnel is already disabled.")
-
             else:
                 config = {}
                 config['isTunnelEnabled'] = False
 
                 self.log("cluster_support_tunnel - Disable the Support Tunnel")
-
                 return self.patch('internal', '/node/me/support_tunnel', config, timeout)
