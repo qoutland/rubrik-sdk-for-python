@@ -29,6 +29,8 @@
 * [configure_timezone](configure_timezone.md)
 * [configure_vlan](configure_vlan.md)
 * [create_user](create_user.md)
+* [create_sla](create_sla.md)
+* [delete_sla](delete_sla.md)
 * [end_user_authorization](end_user_authorization.md)
 * [minimum_installed_cdm_version](minimum_installed_cdm_version.md)
 * [read_only_authorization](read_only_authorization.md)
