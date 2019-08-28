@@ -948,3 +948,17 @@ class Cluster(Api):
                 self.log("cluster_support_tunnel - Disable the Support Tunnel")
 
                 return self.patch('internal', '/node/me/support_tunnel', config, timeout)
+
+    def get_all_vcenters(self, timeout=15):
+        """Retrieve information for each vCenter connected to the Rubrik cluster.
+
+        Keyword Arguments:
+            timeout {int} -- The number of seconds to wait to establish a connection the Rubrik cluster before returning a timeout error. (default: {30})
+
+        Returns:
+            dict -- The full API response for `GET /v1/vmware/vcenter`.
+
+        """
+
+        self.log('get_all_vcenters: Getting information for each vCenter connected  to thhe Rubrik cluster.')
+        return self.get('v1', '/vmware/vcenter', timeout=timeout)
