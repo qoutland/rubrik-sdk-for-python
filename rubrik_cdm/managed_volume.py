@@ -115,7 +115,9 @@ class Managed_Volume(_Api):
                 Returns:
                     list -- The list of managed volume channels  dict [{'ipAddress': 'ip', 'mountPoint': 'path'}].
                 """
+        self.log("managed_volume_channels: Searching the Rubrik cluster for the managed volume details for  '{}'.".format(name))
         managed_volume_details = self.get("internal", "/managed_volume?name={}".format(name), timeout=timeout)
+        self.log("managed_volume_channels: Extracting the channel details for the managed volume '{}'.".format(name))
         try:
             managed_volume_details = managed_volume_details["data"][0]["mainExport"]["channels"]
             return managed_volume_details
@@ -205,13 +207,30 @@ class Managed_Volume(_Api):
 
         return self.post("internal", "/managed_volume/snapshot/{}/export".format(snapshot_id), config, timeout)
 
-    def managed_volume_snapshot_export_info(self, snapshot_id, timeout=15):
-        print(snapshot_id)
-        self.log("managed_volume_snapshot_info: Checking the Rubrik cluster for the snapshot id '{}'.".format(snapshot_id))
-        all_exports_info = self.get('internal', '/managed_volume/snapshot/export', timeout=timeout)
-        print(all_exports_info)
-        if snapshot_id in all_exports_info['data']:
-            print(all_exports_info['data']['channels'])
+    def managed_volume_snapshot_channels(self, name, snapshot_id, timeout=15):
+        """Gets the channel details of the latest managed volume snapshot export for a snapshot id. The export must be
+            completed. This will return "Export of snapshot not found." if the export is queued and the export is not
+            complete.
+
+               Arguments:
+                    name {str} -- The name of the Managed Volume.
+                   snapshot_id {str} -- The id of the managed volume snapshot.
+
+               Keyword Arguments:
+                   timeout {int} -- The number of seconds to wait to establish a connection the Rubrik cluster. (default: {30})
+
+               Returns:
+                   str -- "Export of snapshot not found."
+                   list -- The list of managed volume channels  dict [{'ipAddress': 'ip', 'mountPoint': 'path'}].
+               """
+        self.log("managed_volume_snapshot_channels: Checking the Rubrik cluster for the snapshot exports of  '{}'.".format(name))
+        exports_info = self.get('internal', '/managed_volume/snapshot/export?source_managed_volume_name={}&sort_by=snapshotDate'.format(name), timeout=timeout)
+        self.log("managed_volume_snapshot_channels: Finding latest export of snapshot  '{}'.".format(snapshot_id))
+        if exports_info['data'] and snapshot_id in exports_info['data'][0]['snapshotId']:
+            return exports_info['data'][0]['channels']
+        else:
+            return "Export of snapshot not found."
+
 
 
 
