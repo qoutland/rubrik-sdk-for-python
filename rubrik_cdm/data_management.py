@@ -35,7 +35,7 @@ _API = Api
 class Data_Management(_API):
     """This class contains methods related to backup and restore operations for the various objects managed by the Rubrik cluster."""
 
-    def on_demand_snapshot(self, object_name, object_type, sla_name='current', fileset=None, host_os=None, sql_host=None, sql_instance=None, sql_db=None, hostname=None, timeout=15):  # pylint: ignore
+    def on_demand_snapshot(self, object_name, object_type, sla_name='current', fileset=None, host_os=None, sql_host=None, sql_instance=None, sql_db=None, hostname=None, force_full=False,  timeout=15):  # pylint: ignore
         """Initiate an on-demand snapshot.
 
         Arguments:
@@ -47,6 +47,7 @@ class Data_Management(_API):
             fileset {str} -- The name of the Fileset you wish to backup. Only required when taking a on-demand snapshot of a physical host. (default: {'None'})
             host_os {str} -- The operating system for the physical host. Only required when taking a on-demand snapshot of a physical host. (default: {'None'}) (choices: {Linux, Windows})
             hostname {str} -- The host name, or one of the host names in the cluster, that the Oracle database is running. Required when the object_type is oracle_db.
+            force_full {bool} -- If True will force a new full image backup of an Oracle database. (default: {False})
             timeout {int} -- The number of seconds to wait to establish a connection the Rubrik cluster before returning a timeout error. (default: {15})
 
         Returns:
@@ -219,6 +220,7 @@ class Data_Management(_API):
 
             config = {}
             config['slaId'] = sla_id
+            config['forceFullSnapshot'] = force_full
 
             self.log("on_demand_snapshot: Initiating snapshot for the Oracle database '{}'.".format(object_name))
             api_request = self.post('internal', '/oracle/db/{}/snapshot'.format(db_id), config, timeout)
