@@ -103,9 +103,24 @@ class Managed_Volume(_Api):
 
         return self.post("internal", "/managed_volume/{}/end_snapshot".format(managed_volume_id), config, timeout)
 
-    def managed_volume_channels(self, name):
-        managed_volume_details = self.get("internal", "/managed_volume?name={}".format(name))
-        return managed_volume_details["data"][0]["mainExport"]["channels"]
+    def managed_volume_channels(self, name, timeout=15):
+        """Gets the share details for the managed volume configured channels
+
+                Arguments:
+                    name {str} -- The name of the Managed Volume.
+
+                Keyword Arguments:
+                    timeout {int} -- The number of seconds to wait to establish a connection the Rubrik cluster. (default: {30})
+
+                Returns:
+                    list -- The list of managed volume channels  dict [{'ipAddress': 'ip', 'mountPoint': 'path'}].
+                """
+        managed_volume_details = self.get("internal", "/managed_volume?name={}".format(name), timeout=timeout)
+        try:
+            managed_volume_details = managed_volume_details["data"][0]["mainExport"]["channels"]
+            return managed_volume_details
+        except IndexError:
+            raise IndexError("Managed volume not found.")
 
     def managed_volume_get_snapshot(self, managed_volume_name, date='latest', time='latest', timeout=15):
         """Gets the id of a snapshot based on the time of the snapshot. This can be the latest snapshot or it will be the closest to the provided
@@ -123,7 +138,6 @@ class Managed_Volume(_Api):
                    str -- "No snapshot found"
                    str -- The snapshot id..
                """
-
         from datetime import datetime
 
         if date != 'latest' and time == 'latest' or date == 'latest' and time != 'latest':
@@ -174,7 +188,8 @@ class Managed_Volume(_Api):
                    timeout {int} -- The number of seconds to wait to establish a connection the Rubrik cluster. (default: {30})
 
                Returns:
-                   str -- "Could not find snapshot with ID "
+                   str -- "Could not find snapshot with ID"
+                   str --  "This snapshot is in the cloud and that has been disallowed in this request."
                    dict -- The full API response for `POST /managed_volume/snapshot/{id}/export`.
                """
         self.log("managed_volume_export_snapshot: Searching the Rubrik cluster for the snapshot id '{}'.".format(snapshot_id))
