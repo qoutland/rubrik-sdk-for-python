@@ -235,7 +235,7 @@ class Data_Management(_API):
         Arguments:
             object_name {str} -- The name of the Rubrik object whose ID you wish to lookup.
             object_type {str} -- The object type you wish to look up. (choices: {vmware, sla, vmware_host, physical_host, fileset_template, managed_volume, mysql_db, mysql_instance, vcenter, ahv, aws_native, oracle_db, volume_group, archival_location})
-            hostname {str} -- The hostname, or one of the hostnames in the cluster, that the Oracle database is running. Required when the object_type is oracle_db.
+            hostname {str} -- The hostname, or one of the hostnames in a RAC cluster, or the RAC cluster name. Required when the object_type is oracle_db.
             timeout {int} -- The number of seconds to wait to establish a connection the Rubrik cluster before returning a timeout error. (default: {15})
 
         Returns:
@@ -320,7 +320,7 @@ class Data_Management(_API):
             },
             "oracle_db": {
                 "api_version": "internal",
-                "api_endpoint": "/oracle/db"
+                "api_endpoint": "/oracle/db?name={}".format(object_name)
             },
             "volume_group": {
                 "api_version": "internal",
@@ -364,14 +364,17 @@ class Data_Management(_API):
 
             host_match = False
             for item in api_request['data']:
-                if object_type == 'oracle_db' and item[name_value] == object_name:
+                if object_type == 'oracle_db':
+                    # Find the oracle_db object with the correct hostName or infraPath.
                     for instance in item['instances']:
-                        if hostname in instance['hostName']:
+                        if hostname.split('.')[0] in instance['hostName'] and not host_match:
                             object_ids.append(item['id'])
                             host_match = True
+                    if hostname.split('.')[0] in item['infraPath'] and not host_match:
+                        object_ids.append(item['id'])
+                        host_match = True
                 elif item[name_value] == object_name:
                     object_ids.append(item['id'])
-
             if object_type == 'oracle_db' and not host_match:
                 raise InvalidParameterException(
                     "The {} object '{}' on the host '{}' was not found on the Rubrik cluster.".format(object_type, object_name, hostname))
