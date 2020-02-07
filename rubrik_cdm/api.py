@@ -70,7 +70,11 @@ class Api():
         if call_type != 'JOB_STATUS':
             self._api_validation(api_version, api_endpoint)
 
-            if '/cluster/me/bootstrap' or '/cluster/me/version' in api_endpoint:
+            if '/cluster/me/bootstrap' or 'cluster/me/version' in api_endpoint:
+                try:
+                    print(self.ipv6_addr)
+                except AttributeError:
+                    self.ipv6_addr = ""
                 if self.ipv6_addr != "":
                     header = {
                         'Content-Type': 'application/json',
@@ -82,9 +86,9 @@ class Api():
                     header = {
                         'Content-Type': 'application/json',
                         'Accept': 'application/json',
+                        "Authorization": header["Authorization"]
                     }
                     self.log('Created boostrap header: ' + str(header))
-
         try:
             # Determine which call type is being used and then set the relevant
             # variables for that call type

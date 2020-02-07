@@ -23,7 +23,7 @@ This module contains the Rubrik SDK Cluster class.
 """
 
 from .api import Api
-from .exceptions import InvalidParameterException, CDMVersionException, InvalidTypeException
+from .exceptions import InvalidParameterException, CDMVersionException, InvalidTypeException, APICallException
 
 
 class Cluster(Api):
@@ -765,6 +765,87 @@ class Cluster(Api):
         self.log("create_user: Creating the new user account.")
         return self.post("internal", "/user", config, timeout)
 
+    def update_user(self, username, password=None, first_name=None, last_name=None, email_address=None, contact_number=None, mfa_server_id=None, timeout=15):  # pylint: ignore
+        """Create a new user on the Rubrik cluster
+
+        Arguments:
+            username {str} -- The username for the user you wish to modify.
+
+        Keyword Arguments:
+            password {str} -- New password for user (default: {None})
+            first_name {str} -- The first name of the user you wish to update. (default: {None})
+            last_name {str} -- The last name of the user you wish to update. (default: {None})
+            email_address {str} -- The email address of the user you wish to modify. (default: {None})
+            contact_number {str} -- The contact number of the user you wish to modify. (default: {None})
+            mfa_server_id {int} -- Not sure what this is.
+
+        Returns:
+            id -- Id for updated user.
+            authDomainId -- The domain Id for the updated user.
+            username -- The username for the  uddated user.
+            firstName -- The first name for the updated user.
+            lastName -- The last name for the updated user.
+            emailAddress -- The email address for the updated user.
+            contactNumber -- The contact number for the updated user.
+            createdById -- The created by id for the udpated user.
+            createTime -- The time the user was created.
+            mfaServerId -- Still not sure what this is.
+            status -- The status of the request
+            str -- No change required. The user '`username`' already exists on the Rubrik cluster
+            dict -- The full API response from `POST /internal/user`.
+        """
+
+        self.log("update_user: Searching for the current users on the Rubrik cluster")
+        current_user = self.get("internal", "/user?username={}".format(username), timeout=timeout)
+        if len(current_user) == 0:
+            return "Cannot modify user. The user '{}' does not exist on the Rubrik cluster. Use create_user() to create one.".format(username)
+
+        config = {}
+        if password is not None:
+            config["password"] = password
+        if first_name is not None:
+            config["firstName"] = first_name
+        if last_name is not None:
+            config["lastName"] = last_name
+        if email_address is not None:
+            config["emailAddress"] = email_address
+        if contact_number is not None:
+            config["contactNumber"] = contact_number
+        if mfa_server_id is not None:
+            config["mfaServerId"] = mfa_server_id
+        #return { "user_list": current_user, "user": current_user[0]}
+        self.log("update_user: Updating the user account.")
+        return self.patch("internal", "/user/"+current_user[0]["id"], config, timeout)
+
+    def info_user(self, username, timeout=15):  # pylint: ignore
+        """Create a new user on the Rubrik cluster
+
+        Arguments:
+            username {str} -- The username for the user you wish to modify.
+
+        Returns:
+            id -- Id for updated user.
+            authDomainId -- The domain Id for the updated user.
+            username -- The username for the  uddated user.
+            firstName -- The first name for the updated user.
+            lastName -- The last name for the updated user.
+            emailAddress -- The email address for the updated user.
+            contactNumber -- The contact number for the updated user.
+            createdById -- The created by id for the udpated user.
+            createTime -- The time the user was created.
+            mfaServerId -- Still not sure what this is.
+            status -- The status of the request
+            str -- No change required. The user '`username`' already exists on the Rubrik cluster
+            dict -- The full API response from `POST /internal/user`.
+        """
+
+        self.log("update_user: Searching for the current users on the Rubrik cluster")
+        current_user = self.get("internal", "/user?username={}".format(username), timeout=timeout)
+        if len(current_user) == 0:
+            return "Cannot get user. The user '{}' does not exist on the Rubrik cluster. Use create_user() to create one.".format(username)
+
+        return { "user": current_user[0]}
+
     def read_only_authorization(self, username, timeout=15):
         """Grant read-only access to a specific user.
 
@@ -1008,3 +1089,40 @@ class Cluster(Api):
         config = self.get('internal', '/node_management/cluster_ip')
 
         return config
+    
+    def is_registered(self, wait_for_completion=True, timeout=15):
+        """Retrieve the registration status of the cluster.
+
+        Keyword Arguments:
+            timeout {int} -- The number of seconds to wait to establish a connection the Rubrik cluster before returning a timeout error. (default: {15})
+
+        Returns:
+            bool -- Status of value for registration.
+        """
+        self.log('is_registered: Checking if cluster is registered.')
+        api_request = self.get('internal', '/cluster/me/is_registered', timeout=timeout)
+        registered = api_request.get('value', '')
+        return registered
+
+    def register(self, username, password, wait_for_completion=True, timeout=15):
+        """Register a cluster with username and password.
+
+        Keyword Arguments:
+            username {string} -- Username for the account used to login to the Rubrik community / self-serve website.
+            password {string} -- Password for the account used to login to the Rubrik community / self-serve website.
+            timeout {int} -- The number of seconds to wait to establish a connection the Rubrik cluster before returning a timeout error. (default: {15})
+
+        Returns:
+            bool -- Status of value for registration.
+        """
+        config = {}
+        config["username"] = username
+        config["password"] = password
+        self.log('register: Attempting to register cluster')
+        try:
+            api_request = self.post('internal', '/cluster/me/register', config, timeout=timeout)
+        except APICallException as e:
+            return e
+        if api_request["status_code"] == 204:
+            return "Successfully Registered Cluster."
+        return api_request
